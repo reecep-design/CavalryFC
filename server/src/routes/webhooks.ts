@@ -8,9 +8,7 @@ dotenv.config();
 
 export const webhookRoutes = Router();
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-    apiVersion: '2025-01-27.acacia', // Approximated version
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '');
 
 // POST /api/webhooks/stripe
 webhookRoutes.post('/stripe', express.raw({ type: 'application/json' }), async (req, res) => {

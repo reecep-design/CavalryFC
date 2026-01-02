@@ -155,7 +155,7 @@ registrationRoutes.get('/export', async (req, res) => {
             'Guardian 2 Email': reg.guardian2Email || '',
             'Guardian 2 Phone': reg.guardian2Phone || '',
             'Address': `${reg.street1} ${reg.street2 || ''}, ${reg.city}, ${reg.state} ${reg.zip}`,
-            'Amount': (reg.amountCents / 100).toFixed(2),
+            'Amount': (reg.amountCents ? (reg.amountCents / 100).toFixed(2) : '0.00'),
             'Date': reg.createdAt ? new Date(reg.createdAt).toLocaleDateString() : '',
             'Jersey Size': reg.jerseySize,
             'Short Size': reg.shortSize,
