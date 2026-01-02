@@ -8,7 +8,7 @@ export function AdminPage() {
     const [registrations, setRegistrations] = useState<any[]>([]);
     const [teams, setTeams] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
-    const [loading, setLoading] = useState(false);
+
 
     // Edit state
     const [editingTeam, setEditingTeam] = useState<any>(null);
