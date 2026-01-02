@@ -222,17 +222,7 @@ export function AdminPage() {
         );
     }
 
-    // Content State
-    const [editingContent, setEditingContent] = useState(false);
-    const [contentForm, setContentForm] = useState({
-        program_header: '',
-        program_body: '',
-        seasonal_fee: '',
-        schedule_header: '',
-        schedule_body: '',
-        coaches_header: '',
-        coaches_body: ''
-    });
+
 
     const initContentForm = async () => {
         try {
