@@ -3,6 +3,18 @@ import { useState, useEffect } from 'react';
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export function AdminPage() {
+    // Content State (Moved to top)
+    const [editingContent, setEditingContent] = useState(false);
+    const [contentForm, setContentForm] = useState({
+        program_header: '',
+        program_body: '',
+        seasonal_fee: '',
+        schedule_header: '',
+        schedule_body: '',
+        coaches_header: '',
+        coaches_body: ''
+    });
+
     const [token, setToken] = useState<string | null>(localStorage.getItem('adminToken'));
     const [password, setPassword] = useState('');
     const [registrations, setRegistrations] = useState<any[]>([]);
