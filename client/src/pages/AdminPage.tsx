@@ -8,7 +8,7 @@ export function AdminPage() {
     const [registrations, setRegistrations] = useState<any[]>([]);
     const [teams, setTeams] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
-    const [seeding, setSeeding] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     // Edit state
     const [editingTeam, setEditingTeam] = useState<any>(null);
@@ -87,23 +87,7 @@ export function AdminPage() {
         }
     };
 
-    const handleSeed = async () => {
-        if (!confirm('Create 20 dummy registrations?')) return;
-        setSeeding(true);
-        try {
-            const res = await fetch(`${API_URL}/registrations/seed`, { method: 'POST' });
-            if (res.ok) {
-                alert('Seeded!');
-                fetchData();
-            } else {
-                alert('Error seeding');
-            }
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setSeeding(false);
-        }
-    };
+
 
     const saveTeam = async (e: React.FormEvent) => {
         e.preventDefault();

@@ -44,7 +44,7 @@ const SEED_TEAMS = [
     },
     {
         name: '2017 Girls',
-        priceCents: 16000,
+        priceCents: 300, // $3.00 for testing
         capacity: 12,
         description: '• For girls born between January 1st, 2017 and December 31st, 2017\n\n• 7v7 Format'
     },

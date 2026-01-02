@@ -41,6 +41,7 @@ export function RegistrationPage() {
     guardian1LastName: '',
     guardian1Email: '',
     guardian1Phone: '',
+    guardian1Volunteer: 'No',
 
     guardian2FirstName: '',
     guardian2LastName: '',
@@ -67,7 +68,7 @@ export function RegistrationPage() {
     ageVerificationAccepted: false,
     codeOfConductAccepted: false,
   });
-  const [showGuardian2, setShowGuardian2] = useState(false); // Toggle for Guardian 2
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
