@@ -8,25 +8,21 @@ export const teamRoutes = Router();
 // GET /api/teams (Public)
 teamRoutes.get('/', async (req, res) => {
     try {
-        const allTeams = await db.query.teams.findMany({
-            with: {
-                // We could relationally load registrations, but just a count is better? 
-                // schema doesn't have explicit relation definition in `teams` export likely without `relations` helper.
-                // Let's just do a raw count query or load all regs (not scalable but fine for this scale).
-            }
-        });
+        console.log('GET /api/teams - Start');
+        const allTeams = await db.query.teams.findMany();
+        console.log(`GET /api/teams - Found ${allTeams.length} teams`);
 
-        // Get counts manually for safety if relations aren't perfectly set up
-        const allRegs = await db.query.registrations.findMany();
+        let allRegs: any[] = [];
+        try {
+            allRegs = await db.query.registrations.findMany();
+            console.log(`GET /api/teams - Found ${allRegs.length} registrations`);
+        } catch (regError) {
+            console.error('GET /api/teams - Error fetching registrations:', regError);
+            // Continue without counts if this fails
+        }
 
         const teamsWithCounts = allTeams.map(team => {
             const count = allRegs.filter(r => r.teamId === team.id && r.paymentStatus === 'paid').length;
-            // Note: We count PAID. Unpaid/Waitlist don't count towards capacity? 
-            // Usually 'unpaid' shouldn't persist long unless it's an abandoned checkout.
-            // Let's count 'paid' only for capacity enforcement.
-            // Wait, what if someone is in the middle of checkout? 
-            // For now, simple: Count 'paid'.
-
             return {
                 ...team,
                 registrationCount: count
@@ -35,7 +31,7 @@ teamRoutes.get('/', async (req, res) => {
 
         res.json(teamsWithCounts);
     } catch (error) {
-        console.error('Error fetching teams:', error);
+        console.error('Error fetching teams (CRITICAL):', error);
         res.status(500).json({ error: 'Failed to fetch teams' });
     }
 });
