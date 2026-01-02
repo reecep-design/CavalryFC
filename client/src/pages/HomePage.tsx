@@ -85,7 +85,7 @@ export function HomePage() {
               : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
               }`}>
               <span className={`w-1.5 h-1.5 rounded-full ${team.capacity < 5 ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
-              {team.capacity} spots left
+              {Math.max(0, team.capacity - (team.registrationCount || 0))} spots left
             </span>
           </div>
         </div>

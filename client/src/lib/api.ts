@@ -7,6 +7,7 @@ export interface Team {
     capacity: number;
     description: string | null;
     open: boolean;
+    registrationCount?: number;
 }
 
 export async function fetchTeams(): Promise<Team[]> {
