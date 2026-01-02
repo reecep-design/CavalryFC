@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export function AdminPage() {
-    // Content State (Moved to top)
+    // Content State (Moved to top) - Fix hooks
     const [editingContent, setEditingContent] = useState(false);
     const [contentForm, setContentForm] = useState({
         program_header: '',
