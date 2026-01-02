@@ -181,6 +181,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
 });
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+if (process.env.NODE_ENV === 'production' && FRONTEND_URL.includes('localhost')) {
+    console.error('CRITICAL WARNING: FRONTEND_URL is set to localhost in production! Stripe redirects will fail.');
+}
 
 // POST /api/registrations/checkout
 // Creates a pending registration and a Stripe Checkout Session
