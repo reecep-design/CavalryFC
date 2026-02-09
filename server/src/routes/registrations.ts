@@ -2,7 +2,7 @@ import { Router } from 'express';
 import Stripe from 'stripe';
 import { db } from '../db';
 import { registrations, teams } from '../db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -106,6 +106,19 @@ registrationRoutes.get('/', checkAdmin, async (req, res) => {
     }
 });
 
+// DELETE /api/registrations/:id (Admin)
+registrationRoutes.delete('/:id', checkAdmin, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const deleted = await db.delete(registrations).where(eq(registrations.id, id)).returning();
+        if (deleted.length === 0) return res.status(404).json({ error: 'Registration not found' });
+        res.json({ message: `Deleted registration ${id}`, registration: deleted[0] });
+    } catch (error) {
+        console.error('Delete error:', error);
+        res.status(500).json({ error: 'Failed to delete registration' });
+    }
+});
+
 // POST /api/registrations/waitlist
 // Adds user to waitlist without payment
 registrationRoutes.post('/waitlist', async (req, res) => {
@@ -176,6 +189,60 @@ registrationRoutes.get('/export', async (req, res) => {
     }
 });
 
+// POST /api/registrations/cleanup-duplicates (Admin)
+// 1. If a player has both paid and unpaid registrations for the same team, delete the unpaid ones
+// 2. If a player has multiple unpaid registrations for the same team, keep the newest
+registrationRoutes.post('/cleanup-duplicates', checkAdmin, async (req, res) => {
+    try {
+        const all = await db.query.registrations.findMany({
+            orderBy: [desc(registrations.createdAt)],
+        });
+
+        const deleteIds: number[] = [];
+
+        // Build a set of player+team keys that have a paid registration
+        const paidKeys = new Set<string>();
+        for (const r of all) {
+            if (r.paymentStatus === 'paid') {
+                const key = `${r.playerFirstName?.toLowerCase()}_${r.playerLastName?.toLowerCase()}_${r.teamId}`;
+                paidKeys.add(key);
+            }
+        }
+
+        // Delete any unpaid registration where a paid one exists for the same player+team
+        const unpaid = all.filter(r => r.paymentStatus === 'unpaid');
+        const seenUnpaid = new Map<string, number>();
+
+        for (const r of unpaid) {
+            const key = `${r.playerFirstName?.toLowerCase()}_${r.playerLastName?.toLowerCase()}_${r.teamId}`;
+            if (paidKeys.has(key)) {
+                // Paid version exists — this unpaid record is stale
+                deleteIds.push(r.id);
+            } else if (seenUnpaid.has(key)) {
+                // Duplicate unpaid — keep the newest (first seen since sorted desc)
+                deleteIds.push(r.id);
+            } else {
+                seenUnpaid.set(key, r.id);
+            }
+        }
+
+        if (deleteIds.length === 0) {
+            return res.json({ message: 'No duplicates found', deleted: 0 });
+        }
+
+        await db.delete(registrations).where(inArray(registrations.id, deleteIds));
+
+        res.json({
+            message: `Deleted ${deleteIds.length} duplicate/stale unpaid registration(s)`,
+            deleted: deleteIds.length,
+            deletedIds: deleteIds,
+        });
+    } catch (error) {
+        console.error('Cleanup error:', error);
+        res.status(500).json({ error: 'Failed to clean up duplicates' });
+    }
+});
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
     apiVersion: '2024-12-18.acacia' as any,
 });
@@ -198,14 +265,44 @@ registrationRoutes.post('/checkout', async (req, res) => {
 
         if (!team) return res.status(404).json({ error: 'Team not found' });
 
-        // 2. Create Pending Registration Record
-        const newReg = await db.insert(registrations).values({
-            ...data,
-            amountCents: team.priceCents,
-            paymentStatus: 'unpaid',
-        }).returning();
+        // 2. Check if this player is already paid for this team
+        const alreadyPaid = await db.query.registrations.findFirst({
+            where: and(
+                eq(registrations.playerFirstName, data.playerFirstName),
+                eq(registrations.playerLastName, data.playerLastName),
+                eq(registrations.teamId, data.teamId),
+                eq(registrations.paymentStatus, 'paid'),
+            ),
+        });
 
-        const regId = newReg[0].id;
+        if (alreadyPaid) {
+            return res.status(400).json({ error: 'This player is already registered and paid for this team' });
+        }
+
+        // 3. Check for existing unpaid registration for the same player + team
+        const existing = await db.query.registrations.findFirst({
+            where: and(
+                eq(registrations.playerFirstName, data.playerFirstName),
+                eq(registrations.playerLastName, data.playerLastName),
+                eq(registrations.teamId, data.teamId),
+                eq(registrations.paymentStatus, 'unpaid'),
+            ),
+        });
+
+        let regId: number;
+
+        if (existing) {
+            // Reuse existing unpaid registration instead of creating a duplicate
+            regId = existing.id;
+        } else {
+            // Create new registration record
+            const newReg = await db.insert(registrations).values({
+                ...data,
+                amountCents: team.priceCents,
+                paymentStatus: 'unpaid',
+            }).returning();
+            regId = newReg[0].id;
+        }
 
         // 3. Create Stripe Checkout Session
         const session = await stripe.checkout.sessions.create({

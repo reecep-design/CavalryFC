@@ -24,6 +24,44 @@ export function AdminPage() {
 
     // Edit state
     const [editingTeam, setEditingTeam] = useState<any>(null);
+    const [emailDropdownOpen, setEmailDropdownOpen] = useState(false);
+
+    const handleDeleteRegistration = async (reg: any) => {
+        const confirmText = prompt(
+            `To delete ${reg.playerFirstName} ${reg.playerLastName}, type their last name:`
+        );
+        if (!confirmText || confirmText.trim().toLowerCase() !== reg.playerLastName.trim().toLowerCase()) {
+            if (confirmText !== null) alert('Last name did not match. Delete canceled.');
+            return;
+        }
+        try {
+            const res = await fetch(`${API_URL}/registrations/${reg.id}`, {
+                method: 'DELETE',
+                headers: { 'x-admin-password': token! },
+            });
+            if (res.ok) {
+                fetchData();
+            } else {
+                alert('Failed to delete registration');
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Error deleting registration');
+        }
+    };
+
+    const copyEmails = (filter: 'all' | 'paid' | 'unpaid') => {
+        const filtered = registrations.filter(r => {
+            if (r.isWaitlist) return false;
+            if (filter === 'paid') return r.paymentStatus === 'paid';
+            if (filter === 'unpaid') return r.paymentStatus !== 'paid';
+            return true;
+        });
+        const emails = [...new Set(filtered.map((r: any) => r.guardian1Email).filter(Boolean))];
+        navigator.clipboard.writeText(emails.join(', '));
+        alert(`Copied ${emails.length} email(s) to clipboard!`);
+        setEmailDropdownOpen(false);
+    };
 
     useEffect(() => {
         if (token) {
@@ -155,8 +193,13 @@ export function AdminPage() {
 
     // Card Renderer Helper
     const renderTeamCard = (team: any) => {
-        // Only count ACTIVE (paid/unpaid but not waitlisted) registrations for the card count
-        const teamRegs = registrations.filter(r => (r.teamId === team.id || r.teamName === team.name) && !r.isWaitlist);
+        const allTeamRegs = registrations.filter(r => (r.teamId === team.id || r.teamName === team.name) && !r.isWaitlist);
+        const paidRegs = allTeamRegs
+            .filter(r => r.paymentStatus === 'paid')
+            .sort((a: any, b: any) => (a.playerLastName || '').localeCompare(b.playerLastName || ''));
+        const unpaidRegs = allTeamRegs
+            .filter(r => r.paymentStatus !== 'paid')
+            .sort((a: any, b: any) => (a.playerLastName || '').localeCompare(b.playerLastName || ''));
 
         return (
             <div key={team.id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden flex flex-col mb-4">
@@ -164,11 +207,11 @@ export function AdminPage() {
                 <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                     <div className="flex items-center gap-3">
                         <h3 className="font-bold text-lg text-gray-900">{team.name}</h3>
-                        <span className={`text-xs font-semibold px-2.5 py-0.5 rounded border ${teamRegs.length >= team.capacity
+                        <span className={`text-xs font-semibold px-2.5 py-0.5 rounded border ${paidRegs.length >= team.capacity
                             ? 'bg-red-50 text-red-700 border-red-200'
                             : 'bg-blue-50 text-blue-700 border-blue-200'
                             }`}>
-                            {teamRegs.length} / {team.capacity} Filled
+                            {paidRegs.length} / {team.capacity} Filled
                         </span>
                     </div>
 
@@ -183,27 +226,70 @@ export function AdminPage() {
                     </button>
                 </div>
 
-                {/* Registrations List */}
+                {/* Paid Registrations */}
                 <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
-                    {teamRegs.length === 0 ? (
+                    {paidRegs.length === 0 && unpaidRegs.length === 0 ? (
                         <div className="p-8 text-center text-gray-400 italic">
                             No active registrations.
                         </div>
                     ) : (
-                        teamRegs.map((reg) => (
-                            <div key={reg.id} className="p-4 hover:bg-gray-50 flex justify-between items-center text-sm">
+                        paidRegs.map((reg) => (
+                            <div key={reg.id} className="p-4 hover:bg-gray-50 flex justify-between items-center text-sm group/row">
                                 <div>
                                     <p className="font-semibold text-gray-900">{reg.playerLastName}, {reg.playerFirstName}</p>
                                     <p className="text-gray-500 text-xs">Guardian: {reg.guardian1Name} ({reg.guardian1Email})</p>
                                 </div>
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${reg.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                                    }`}>
-                                    {reg.paymentStatus}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-green-100 text-green-800">
+                                        paid
+                                    </span>
+                                    <button
+                                        onClick={() => handleDeleteRegistration(reg)}
+                                        className="opacity-0 group-hover/row:opacity-100 text-gray-300 hover:text-red-500 transition-all p-1 rounded hover:bg-red-50"
+                                        title="Delete registration"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
                         ))
                     )}
                 </div>
+
+                {/* Unpaid Registrations - Separated */}
+                {unpaidRegs.length > 0 && (
+                    <div className="border-t-2 border-dashed border-yellow-300 bg-yellow-50/50">
+                        <div className="px-6 py-2 text-xs font-bold uppercase text-yellow-700 tracking-wider">
+                            Unpaid ({unpaidRegs.length})
+                        </div>
+                        <div className="divide-y divide-yellow-100">
+                            {unpaidRegs.map((reg) => (
+                                <div key={reg.id} className="p-4 flex justify-between items-center text-sm opacity-70 group/row">
+                                    <div>
+                                        <p className="font-semibold text-gray-700">{reg.playerLastName}, {reg.playerFirstName}</p>
+                                        <p className="text-gray-400 text-xs">Guardian: {reg.guardian1Name} ({reg.guardian1Email})</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-yellow-100 text-yellow-800">
+                                            unpaid
+                                        </span>
+                                        <button
+                                            onClick={() => handleDeleteRegistration(reg)}
+                                            className="opacity-0 group-hover/row:opacity-100 text-gray-300 hover:text-red-500 transition-all p-1 rounded hover:bg-red-50"
+                                            title="Delete registration"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Footer Info */}
                 <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 text-xs text-gray-500 flex justify-between">
@@ -312,6 +398,37 @@ export function AdminPage() {
                 <div className="mb-6 flex justify-between items-center">
                     <h2 className="text-xl font-semibold text-gray-800">Spring Season Teams</h2>
                     <div className="flex gap-3">
+                        {/* Copy Emails Dropdown */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setEmailDropdownOpen(!emailDropdownOpen)}
+                                className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition-colors flex items-center gap-2"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                                </svg>
+                                <span>Copy Emails</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                                </svg>
+                            </button>
+                            {emailDropdownOpen && (
+                                <>
+                                    <div className="fixed inset-0 z-40" onClick={() => setEmailDropdownOpen(false)} />
+                                    <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1">
+                                        <button onClick={() => copyEmails('all')} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 text-gray-700">
+                                            All Emails
+                                        </button>
+                                        <button onClick={() => copyEmails('paid')} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 text-gray-700">
+                                            Paid Only
+                                        </button>
+                                        <button onClick={() => copyEmails('unpaid')} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 text-gray-700">
+                                            Unpaid Only
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
                         <button
                             onClick={initContentForm}
                             className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition-colors flex items-center gap-2"

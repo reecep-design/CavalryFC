@@ -45,66 +45,71 @@ export function HomePage() {
   boysTeams.sort(sortTeams);
   girlsTeams.sort(sortTeams);
 
-  const TeamCard = ({ team }: { team: Team }) => (
-    <div key={team.id} className="group bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col relative">
+  const TeamCard = ({ team }: { team: Team }) => {
+    const spotsLeft = Math.max(0, team.capacity - (team.registrationCount || 0));
+    const isFull = spotsLeft === 0;
 
-      {/* Top Gradient Bar */}
-      <div className="h-2 w-full bg-gradient-to-r from-blue-700 to-blue-500"></div>
+    return (
+      <div key={team.id} className="group bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col relative">
 
-      {/* Early Bird Badge - Floating Modern */}
-      <div className="absolute top-5 right-5 z-10">
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider bg-red-50 text-red-600 shadow-sm border border-red-100">
-          Early Bird • Ends Feb 1st
-        </span>
-      </div>
+        {/* Top Gradient Bar */}
+        <div className={`h-2 w-full ${!team.open || isFull ? 'bg-gradient-to-r from-amber-500 to-amber-400' : 'bg-gradient-to-r from-blue-700 to-blue-500'}`}></div>
 
-      <div className="p-7 flex-grow">
-        <h3 className="text-2xl font-extrabold text-blue-900 mb-4 tracking-tight group-hover:text-blue-700 transition-colors">
-          {team.name}
-        </h3>
+        <div className="p-7 flex-grow">
+          <h3 className="text-2xl font-extrabold text-blue-900 mb-4 tracking-tight group-hover:text-blue-700 transition-colors">
+            {team.name}
+          </h3>
 
-        {/* Description */}
-        <div className="text-slate-600 text-sm leading-relaxed whitespace-pre-line font-medium mb-6">
-          {team.description}
+          {/* Description */}
+          <div className="text-slate-600 text-sm leading-relaxed whitespace-pre-line font-medium mb-6">
+            {team.description}
+          </div>
         </div>
-      </div>
 
-      <div className="px-7 pb-7 pt-4 border-t border-gray-50 bg-gray-50/50 mt-auto">
-        <div className="flex justify-between items-end mb-5">
-          <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Seasonal Fee</p>
-            <div className="flex items-baseline gap-1">
-              <p className="text-3xl font-black text-blue-900 tracking-tighter">
-                {formatPrice(team.priceCents)}
-              </p>
+        <div className="px-7 pb-7 pt-4 border-t border-gray-50 bg-gray-50/50 mt-auto">
+          <div className="flex justify-between items-end mb-5">
+            <div>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Seasonal Fee</p>
+              <div className="flex items-baseline gap-1">
+                <p className="text-3xl font-black text-blue-900 tracking-tighter">
+                  {formatPrice(team.priceCents)}
+                </p>
+              </div>
+            </div>
+            <div className="text-right pb-1">
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold ${!team.open || isFull
+                ? 'bg-amber-50 text-amber-700 border border-amber-100'
+                : spotsLeft <= 3
+                  ? 'bg-amber-50 text-amber-700 border border-amber-100'
+                  : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${!team.open || isFull ? 'bg-amber-500' : spotsLeft <= 3 ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
+                {!team.open ? 'Waitlist Only' : isFull ? 'Team Full' : `${spotsLeft} spots left`}
+              </span>
             </div>
           </div>
-          <div className="text-right pb-1">
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold ${team.capacity < 5
-              ? 'bg-amber-50 text-amber-700 border border-amber-100'
-              : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-              }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${team.capacity < 5 ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
-              {Math.max(0, team.capacity - (team.registrationCount || 0))} spots left
-            </span>
-          </div>
-        </div>
 
-        <button
-          onClick={() => navigate(`/register/${team.id}`)}
-          className="w-full bg-blue-800 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 group-hover:bg-blue-700"
-          disabled={!team.open}
-        >
-          {team.open ? (
-            <>
+          {!team.open || isFull ? (
+            <button
+              onClick={() => navigate(`/register/${team.id}?mode=waitlist`)}
+              className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-[0.98] flex items-center justify-center gap-2"
+            >
+              <span>Join Waitlist</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path></svg>
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate(`/register/${team.id}`)}
+              className="w-full bg-blue-800 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 group-hover:bg-blue-700"
+            >
               <span>Register Now</span>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"></path></svg>
-            </>
-          ) : 'Registration Closed'}
-        </button>
+            </button>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans selection:bg-blue-100 selection:text-blue-900">
