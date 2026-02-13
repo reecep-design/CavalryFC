@@ -5,7 +5,6 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export function DonatePage() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const sessionId = searchParams.get('session_id');
   const canceled = searchParams.get('canceled');
 
