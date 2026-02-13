@@ -80,6 +80,21 @@ export const registrations = pgTable('registrations', {
     createdAt: timestamp('created_at').defaultNow(),
 });
 
+export const donations = pgTable('donations', {
+    id: serial('id').primaryKey(),
+    type: text('type').notNull().default('donation'), // 'donation' | 'reimbursement'
+    donorName: text('donor_name'),
+    donorEmail: text('donor_email'),
+    comment: text('comment'),
+    amountCents: integer('amount_cents').notNull(),
+    currency: text('currency').default('usd'),
+    stripeCheckoutSessionId: text('stripe_checkout_session_id'),
+    stripePaymentIntentId: text('stripe_payment_intent_id'),
+    paymentStatus: paymentStatusEnum('payment_status').default('unpaid'),
+    paidAt: timestamp('paid_at'),
+    createdAt: timestamp('created_at').defaultNow(),
+});
+
 export const siteContent = pgTable('site_content', {
     key: text('key').primaryKey(),
     content: jsonb('content').notNull(),

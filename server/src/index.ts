@@ -5,6 +5,7 @@ import path from 'path';
 import { teamRoutes } from './routes/teams';
 import { registrationRoutes } from './routes/registrations';
 import { contentRoutes } from './routes/content';
+import { donationRoutes } from './routes/donations';
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/teams', teamRoutes);
 app.use('/api/registrations', registrationRoutes);
 app.use('/api/content', contentRoutes);
+app.use('/api/donations', donationRoutes);
 
 // Serve Static Files (Production)
 // In development, Vite handles this. In prod, Express serves the dist folder.
