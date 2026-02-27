@@ -215,6 +215,28 @@ export function AdminPage() {
                         </span>
                     </div>
 
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => {
+                                const teamRegs = registrations.filter(r => (r.teamId === team.id || r.teamName === team.name) && !r.isWaitlist);
+                                const emails = [...new Set([
+                                    ...teamRegs.map((r: any) => r.guardian1Email).filter(Boolean),
+                                    ...teamRegs.map((r: any) => r.guardian2Email).filter(Boolean),
+                                ])];
+                                if (emails.length === 0) {
+                                    alert('No emails to copy for this team.');
+                                    return;
+                                }
+                                navigator.clipboard.writeText(emails.join(', '));
+                                alert(`Copied ${emails.length} email(s) for ${team.name}!`);
+                            }}
+                            className="text-gray-400 hover:text-purple-600 p-1 hover:bg-purple-50 rounded transition-colors"
+                            title="Copy team emails"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                            </svg>
+                        </button>
                     <button
                         onClick={() => setEditingTeam(team)}
                         className="text-gray-400 hover:text-blue-600 p-1 hover:bg-gray-200 rounded transition-colors"
@@ -224,6 +246,7 @@ export function AdminPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.157.945c.03.188.093.368.18.535l.937.669a.75.75 0 0 1 .184 1.082l-.634.957a.75.75 0 0 1-1.01.218l-.936-.67a2.536 2.536 0 0 0-3.003 0l-.936.67a.75.75 0 0 1-1.009-.218l-.634-.957a.75.75 0 0 1 .184-1.082l.937-.669a2.53 2.53 0 0 0 .18-.535l.157-.945ZM6.9 13.91a.75.75 0 0 1 .84.154l.583.583c.188.188.368.423.535.688l.669 1.252c.11.205.289.373.513.486l1.258.63a.75.75 0 0 1 .336 1.01l-.47.94a.75.75 0 0 1-1.08.256l-1.076-.718a2.529 2.529 0 0 0-2.822 0l-1.076.718a.75.75 0 0 1-1.08-.256l-.47-.94a.75.75 0 0 1 .336-1.01l1.258-.63c.224-.113.403-.28.513-.486l.669-1.252a2.534 2.534 0 0 0 .535-.688l.583-.583ZM16.275 14.07a.75.75 0 0 1 1.078-.006l.58.586c.189.19.423.37.689.537l1.252.67c.205.11.373.289.486.513l.63 1.258a.75.75 0 0 1-1.01.336l-.94-.47a.75.75 0 0 1-.256-1.08l.718-1.076a2.529 2.529 0 0 0 0-2.822l-.718-1.076a.75.75 0 0 1 .256-1.08l.94-.47a.75.75 0 0 1 1.01.336l-.63 1.258a2.534 2.534 0 0 0-.486.513l-1.252.67a2.53 2.53 0 0 0-.689.537l-.58.586ZM12 15.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5Z" />
                         </svg>
                     </button>
+                    </div>
                 </div>
 
                 {/* Paid Registrations */}
