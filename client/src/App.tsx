@@ -5,6 +5,7 @@ import { SuccessPage } from './pages/SuccessPage';
 import { AdminPage } from './pages/AdminPage';
 import { DonatePage } from './pages/DonatePage';
 import { ReimbursePage } from './pages/ReimbursePage';
+import { SchedulePage } from './pages/SchedulePage';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/success" element={<SuccessPage />} />
         <Route path="/donate" element={<DonatePage />} />
         <Route path="/reimburse" element={<ReimbursePage />} />
+        <Route path="/schedule" element={<SchedulePage />} />
         <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </Router>
