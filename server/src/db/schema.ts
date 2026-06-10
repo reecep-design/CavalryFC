@@ -7,10 +7,19 @@ export const paymentStatusEnum = pgEnum('payment_status', ['unpaid', 'paid', 're
 export const teams = pgTable('teams', {
     id: serial('id').primaryKey(),
     name: text('name').notNull(), // e.g. "2017 Boys"
-    priceCents: integer('price_cents').notNull().default(16000),
+    priceCents: integer('price_cents').notNull().default(16000), // Regular (post-early-bird) price
     capacity: integer('capacity').notNull().default(20),
     description: text('description'),
     open: boolean('open').notNull().default(true),
+    // Tiered pricing that steps up over time:
+    //   super early bird (until superEarlyBirdEnds) -> early bird (until earlyBirdEnds) -> priceCents (regular).
+    // Any tier with a null price/date is skipped. priceCents is always the final, full price.
+    superEarlyBirdPriceCents: integer('super_early_bird_price_cents'),
+    superEarlyBirdEnds: timestamp('super_early_bird_ends'),
+    earlyBirdPriceCents: integer('early_bird_price_cents'),
+    earlyBirdEnds: timestamp('early_bird_ends'),
+    // Archived teams are kept for historical data but hidden from the public homepage.
+    archived: boolean('archived').notNull().default(false),
     createdAt: timestamp('created_at').defaultNow(),
 });
 

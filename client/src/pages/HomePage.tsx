@@ -45,9 +45,22 @@ export function HomePage() {
   boysTeams.sort(sortTeams);
   girlsTeams.sort(sortTeams);
 
+  const formatDate = (iso: string) => {
+    return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+  };
+
+  const tierLabels: Record<string, string> = {
+    super: 'Super Early Bird',
+    early: 'Early Bird',
+    regular: 'Seasonal Fee',
+  };
+
   const TeamCard = ({ team }: { team: Team }) => {
     const spotsLeft = Math.max(0, team.capacity - (team.registrationCount || 0));
     const isFull = spotsLeft === 0;
+    const currentPrice = team.currentPriceCents ?? team.priceCents;
+    const tier = team.priceTier ?? 'regular';
+    const isDiscounted = tier !== 'regular';
 
     return (
       <div key={team.id} className="group bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col relative">
@@ -69,12 +82,24 @@ export function HomePage() {
         <div className="px-7 pb-7 pt-4 border-t border-gray-50 bg-gray-50/50 mt-auto">
           <div className="flex justify-between items-end mb-5">
             <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Seasonal Fee</p>
-              <div className="flex items-baseline gap-1">
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">
+                {tierLabels[tier]}
+              </p>
+              <div className="flex items-baseline gap-2">
                 <p className="text-3xl font-black text-blue-900 tracking-tighter">
-                  {formatPrice(team.priceCents)}
+                  {formatPrice(currentPrice)}
                 </p>
+                {isDiscounted && (
+                  <p className="text-base font-bold text-slate-400 line-through tracking-tighter">
+                    {formatPrice(team.priceCents)}
+                  </p>
+                )}
               </div>
+              {isDiscounted && team.nextPriceCents != null && team.nextPriceStarts && (
+                <p className="text-[11px] font-bold text-emerald-600 mt-1">
+                  Goes up to {formatPrice(team.nextPriceCents)} on {formatDate(team.nextPriceStarts)}
+                </p>
+              )}
             </div>
             <div className="text-right pb-1">
               <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold ${!team.open || isFull
@@ -137,7 +162,7 @@ export function HomePage() {
 
           <h1 className="text-5xl md:text-6xl font-black text-blue-900 mb-6 tracking-tight leading-tight">
             Cavalry FC <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400">Spring Season</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-400">Fall 2026 Season</span>
           </h1>
 
           <div className="max-w-4xl mx-auto mt-12 mb-16 space-y-8 text-left bg-white/80 p-8 md:p-10 rounded-3xl border border-blue-100 shadow-xl backdrop-blur-sm hover:border-blue-200 transition-colors">
@@ -185,7 +210,7 @@ export function HomePage() {
               <div>
                 <h3 className="text-sm font-bold text-blue-900 uppercase tracking-widest mb-1">Questions?</h3>
                 <p className="text-slate-600 text-sm">
-                  Contact Mr. Reece at <a href="mailto:reecep@cavalryboosterclub.org" className="text-blue-600 hover:underline decoration-2 underline-offset-2">reecep@cavalryboosterclub.org</a> or 734-904-8320.
+                  Contact Mr. Reece on <a href="https://wa.me/17349048320" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline decoration-2 underline-offset-2 font-semibold">WhatsApp</a> at 734-904-8320.
                 </p>
               </div>
               <div className="text-right">
@@ -207,13 +232,15 @@ export function HomePage() {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
               Support the Club — Donate
             </button>
-            <button
+            {/* Cash Reimbursement hidden — handled via ATM deposits now.
+                Restore this button to bring the public /reimburse flow back. */}
+            {false && <button
               onClick={() => navigate('/reimburse')}
               className="inline-flex items-center gap-2 bg-white hover:bg-blue-50 text-blue-800 font-bold py-3.5 px-8 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-[0.98] text-base border border-blue-200"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
               Cash Reimbursement
-            </button>
+            </button>}
             <button
               onClick={() => navigate('/schedule')}
               className="inline-flex items-center gap-2 bg-white hover:bg-blue-50 text-blue-800 font-bold py-3.5 px-8 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-[0.98] text-base border border-blue-200"

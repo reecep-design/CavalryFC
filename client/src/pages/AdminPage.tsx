@@ -104,8 +104,8 @@ export function AdminPage() {
                 return;
             }
 
-            // Fetch Teams
-            const teamRes = await fetch(`${API_URL}/teams`);
+            // Fetch Teams (include archived/past-season teams in admin)
+            const teamRes = await fetch(`${API_URL}/teams?includeArchived=1`);
             if (teamRes.ok) {
                 setTeams(await teamRes.json());
             }
@@ -155,7 +155,12 @@ export function AdminPage() {
                     description: editingTeam.description,
                     priceCents: editingTeam.priceCents,
                     capacity: editingTeam.capacity,
-                    open: editingTeam.open
+                    open: editingTeam.open,
+                    superEarlyBirdPriceCents: editingTeam.superEarlyBirdPriceCents ?? null,
+                    superEarlyBirdEnds: editingTeam.superEarlyBirdEnds || null,
+                    earlyBirdPriceCents: editingTeam.earlyBirdPriceCents ?? null,
+                    earlyBirdEnds: editingTeam.earlyBirdEnds || null,
+                    archived: editingTeam.archived ?? false,
                 }),
             });
 
@@ -213,6 +218,16 @@ export function AdminPage() {
                             }`}>
                             {paidRegs.length} / {team.capacity} Filled
                         </span>
+                        {team.archived && (
+                            <span className="text-xs font-semibold px-2.5 py-0.5 rounded border bg-gray-200 text-gray-600 border-gray-300">
+                                Archived
+                            </span>
+                        )}
+                        {team.priceTier && team.priceTier !== 'regular' && (
+                            <span className="text-xs font-semibold px-2.5 py-0.5 rounded border bg-emerald-50 text-emerald-700 border-emerald-200">
+                                {team.priceTier === 'super' ? 'Super Early Bird' : 'Early Bird'} — ${((team.currentPriceCents ?? team.priceCents) / 100).toFixed(0)}
+                            </span>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-1">
@@ -315,9 +330,21 @@ export function AdminPage() {
                 )}
 
                 {/* Footer Info */}
-                <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 text-xs text-gray-500 flex justify-between">
-                    <span>Price: ${(team.priceCents / 100).toFixed(2)}</span>
-                    <span>Status: {team.open ? 'Open' : 'Closed'}</span>
+                <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 text-xs text-gray-500 flex justify-between gap-4">
+                    <span>
+                        {team.superEarlyBirdPriceCents != null && team.superEarlyBirdEnds && (
+                            <span className="text-emerald-600 font-medium">
+                                ${(team.superEarlyBirdPriceCents / 100).toFixed(0)} until {new Date(team.superEarlyBirdEnds).toLocaleDateString()} →{' '}
+                            </span>
+                        )}
+                        {team.earlyBirdPriceCents != null && team.earlyBirdEnds && (
+                            <span className="text-emerald-600 font-medium">
+                                ${(team.earlyBirdPriceCents / 100).toFixed(0)} until {new Date(team.earlyBirdEnds).toLocaleDateString()} →{' '}
+                            </span>
+                        )}
+                        <span className="font-medium text-gray-700">${(team.priceCents / 100).toFixed(2)}</span>
+                    </span>
+                    <span className="whitespace-nowrap">Status: {team.open ? 'Open' : 'Closed'}</span>
                 </div>
             </div>
         );
@@ -419,7 +446,7 @@ export function AdminPage() {
 
                 {/* Subheader */}
                 <div className="mb-6 flex justify-between items-center">
-                    <h2 className="text-xl font-semibold text-gray-800">Spring Season Teams</h2>
+                    <h2 className="text-xl font-semibold text-gray-800">Fall 2026 Season Teams</h2>
                     <div className="flex gap-3">
                         {/* Copy Emails Dropdown */}
                         <div className="relative">
@@ -677,6 +704,79 @@ export function AdminPage() {
                                 </div>
                             </div>
 
+                            {/* Tiered Pricing */}
+                            <div className="p-4 bg-emerald-50/50 rounded-lg border border-emerald-100 space-y-4">
+                                <p className="text-xs font-bold uppercase tracking-wider text-emerald-800">
+                                    Tiered Pricing (optional)
+                                </p>
+                                <p className="text-xs text-gray-500 -mt-2">
+                                    Price steps up over time: Super Early Bird → Early Bird → the regular price above. Leave a tier blank to skip it.
+                                </p>
+
+                                {/* Super Early Bird */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Super Early Bird Price (Cents)</label>
+                                        <input
+                                            type="number"
+                                            placeholder="e.g. 10000"
+                                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                                            value={editingTeam.superEarlyBirdPriceCents ?? ''}
+                                            onChange={e => setEditingTeam({
+                                                ...editingTeam,
+                                                superEarlyBirdPriceCents: e.target.value === '' ? null : parseInt(e.target.value),
+                                            })}
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            {editingTeam.superEarlyBirdPriceCents != null
+                                                ? `$${(editingTeam.superEarlyBirdPriceCents / 100).toFixed(2)}`
+                                                : 'No super early bird'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Super Early Bird Ends</label>
+                                        <input
+                                            type="date"
+                                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                                            value={editingTeam.superEarlyBirdEnds ? String(editingTeam.superEarlyBirdEnds).split('T')[0] : ''}
+                                            onChange={e => setEditingTeam({ ...editingTeam, superEarlyBirdEnds: e.target.value || null })}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Early Bird */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Early Bird Price (Cents)</label>
+                                        <input
+                                            type="number"
+                                            placeholder="e.g. 12000"
+                                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                                            value={editingTeam.earlyBirdPriceCents ?? ''}
+                                            onChange={e => setEditingTeam({
+                                                ...editingTeam,
+                                                earlyBirdPriceCents: e.target.value === '' ? null : parseInt(e.target.value),
+                                            })}
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            {editingTeam.earlyBirdPriceCents != null
+                                                ? `$${(editingTeam.earlyBirdPriceCents / 100).toFixed(2)}`
+                                                : 'No early bird'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Early Bird Ends</label>
+                                        <input
+                                            type="date"
+                                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                                            value={editingTeam.earlyBirdEnds ? String(editingTeam.earlyBirdEnds).split('T')[0] : ''}
+                                            onChange={e => setEditingTeam({ ...editingTeam, earlyBirdEnds: e.target.value || null })}
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">Reverts to regular price after this date</p>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="flex items-center pt-2">
                                 <input
                                     type="checkbox"
@@ -687,6 +787,19 @@ export function AdminPage() {
                                 />
                                 <label htmlFor="open" className="ml-2 block text-sm font-medium text-gray-900">
                                     Registration Open
+                                </label>
+                            </div>
+
+                            <div className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    id="archived"
+                                    className="h-4 w-4 text-gray-600 focus:ring-gray-500 border-gray-300 rounded"
+                                    checked={editingTeam.archived ?? false}
+                                    onChange={e => setEditingTeam({ ...editingTeam, archived: e.target.checked })}
+                                />
+                                <label htmlFor="archived" className="ml-2 block text-sm font-medium text-gray-900">
+                                    Archived <span className="text-gray-500 font-normal">(hidden from public homepage, kept for records)</span>
                                 </label>
                             </div>
 

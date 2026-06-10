@@ -3,6 +3,7 @@ import Stripe from 'stripe';
 import { db } from '../db';
 import { registrations, teams } from '../db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
+import { effectivePriceCents } from '../lib/pricing';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -131,7 +132,7 @@ registrationRoutes.post('/waitlist', async (req, res) => {
 
         const newReg = await db.insert(registrations).values({
             ...data,
-            amountCents: team.priceCents, // Keeping price info but unpaid
+            amountCents: effectivePriceCents(team), // Keeping price info but unpaid
             paymentStatus: 'unpaid',
             isWaitlist: true,
         }).returning();
@@ -252,6 +253,10 @@ if (process.env.NODE_ENV === 'production' && FRONTEND_URL.includes('localhost'))
     console.error('CRITICAL WARNING: FRONTEND_URL is set to localhost in production! Stripe redirects will fail.');
 }
 
+// Season label shown on the Stripe receipt (e.g. "2018-2019 Girls — Fall 2026 Registration").
+// Update this each season, same as the "Fall 2026 Season" text on the homepage.
+const SEASON_LABEL = 'Fall 2026';
+
 // POST /api/registrations/checkout
 // Creates a pending registration and a Stripe Checkout Session
 registrationRoutes.post('/checkout', async (req, res) => {
@@ -289,16 +294,23 @@ registrationRoutes.post('/checkout', async (req, res) => {
             ),
         });
 
+        // Price to charge right now (early-bird price if before the deadline, else regular)
+        const priceCents = effectivePriceCents(team);
+
         let regId: number;
 
         if (existing) {
-            // Reuse existing unpaid registration instead of creating a duplicate
+            // Reuse existing unpaid registration instead of creating a duplicate.
+            // Refresh the stored amount in case early-bird pricing flipped since it was created.
             regId = existing.id;
+            await db.update(registrations)
+                .set({ amountCents: priceCents })
+                .where(eq(registrations.id, existing.id));
         } else {
             // Create new registration record
             const newReg = await db.insert(registrations).values({
                 ...data,
-                amountCents: team.priceCents,
+                amountCents: priceCents,
                 paymentStatus: 'unpaid',
             }).returning();
             regId = newReg[0].id;
@@ -313,10 +325,10 @@ registrationRoutes.post('/checkout', async (req, res) => {
                     price_data: {
                         currency: 'usd',
                         product_data: {
-                            name: `${team.name} Registration`,
+                            name: `${team.name} — ${SEASON_LABEL} Registration`,
                             description: `Player: ${data.playerFirstName} ${data.playerLastName}`,
                         },
-                        unit_amount: team.priceCents,
+                        unit_amount: priceCents,
                     },
                     quantity: 1,
                 },

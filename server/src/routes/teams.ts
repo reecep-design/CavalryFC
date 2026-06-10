@@ -2,13 +2,17 @@ import { Router } from 'express';
 import { db } from '../db';
 import { teams } from '../db/schema';
 import { eq } from 'drizzle-orm';
+import { pricingInfo } from '../lib/pricing';
 
 export const teamRoutes = Router();
 
 // GET /api/teams (Public)
+// By default only returns active (non-archived) teams. Admin passes
+// ?includeArchived=1 to also see archived (past-season) teams.
 teamRoutes.get('/', async (req, res) => {
     try {
         console.log('GET /api/teams - Start');
+        const includeArchived = req.query.includeArchived === '1' || req.query.includeArchived === 'true';
         const allTeams = await db.query.teams.findMany();
         console.log(`GET /api/teams - Found ${allTeams.length} teams`);
 
@@ -21,11 +25,19 @@ teamRoutes.get('/', async (req, res) => {
             // Continue without counts if this fails
         }
 
-        const teamsWithCounts = allTeams.map(team => {
+        const visibleTeams = includeArchived ? allTeams : allTeams.filter(t => !t.archived);
+
+        const teamsWithCounts = visibleTeams.map(team => {
             const count = allRegs.filter(r => r.teamId === team.id && r.paymentStatus === 'paid').length;
+            const pricing = pricingInfo(team);
             return {
                 ...team,
-                registrationCount: count
+                registrationCount: count,
+                // Effective price + tier the public should see / pay right now
+                currentPriceCents: pricing.currentPriceCents,
+                priceTier: pricing.tier,
+                nextPriceCents: pricing.nextPriceCents,
+                nextPriceStarts: pricing.nextPriceStarts,
             };
         });
 
@@ -56,7 +68,7 @@ teamRoutes.get('/:id', async (req, res) => {
 
 // POST /api/teams (Admin protected - middleware later)
 teamRoutes.post('/', async (req, res) => {
-    const { name, priceCents, capacity, description, open } = req.body;
+    const { name, priceCents, capacity, description, open, superEarlyBirdPriceCents, superEarlyBirdEnds, earlyBirdPriceCents, earlyBirdEnds, archived } = req.body;
     try {
         const newTeam = await db.insert(teams).values({
             name,
@@ -64,6 +76,11 @@ teamRoutes.post('/', async (req, res) => {
             capacity,
             description,
             open: open ?? true,
+            superEarlyBirdPriceCents: superEarlyBirdPriceCents ?? null,
+            superEarlyBirdEnds: superEarlyBirdEnds ? new Date(superEarlyBirdEnds) : null,
+            earlyBirdPriceCents: earlyBirdPriceCents ?? null,
+            earlyBirdEnds: earlyBirdEnds ? new Date(earlyBirdEnds) : null,
+            archived: archived ?? false,
         }).returning();
         res.json(newTeam[0]);
     } catch (error) {
@@ -81,7 +98,21 @@ teamRoutes.patch('/:id', async (req, res) => {
     }
 
     const { id } = req.params;
-    const updates = req.body;
+    const updates = { ...req.body };
+
+    // Coerce tier deadlines from ISO/date strings into Dates.
+    // An empty string clears a tier (that tier is skipped).
+    for (const dateField of ['earlyBirdEnds', 'superEarlyBirdEnds'] as const) {
+        if (dateField in updates) {
+            updates[dateField] = updates[dateField] ? new Date(updates[dateField]) : null;
+        }
+    }
+    for (const priceField of ['earlyBirdPriceCents', 'superEarlyBirdPriceCents'] as const) {
+        if (priceField in updates && updates[priceField] === '') {
+            updates[priceField] = null;
+        }
+    }
+
     try {
         const updatedTeam = await db.update(teams)
             .set(updates)
