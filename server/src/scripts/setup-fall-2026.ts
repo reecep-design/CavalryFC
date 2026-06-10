@@ -24,6 +24,9 @@ dotenv.config();
 
 const APPLY = process.argv.includes('--apply');
 
+// Season label applied to the newly created teams (groups them in the admin picker).
+const NEW_SEASON = 'Fall 2026';
+
 // Pricing ladder (cents) and tier deadlines.
 // Deadlines are pinned to MIDNIGHT EASTERN (-04:00 EDT) so the price flips at the
 // start of the named day in the club's local time, regardless of server timezone:
@@ -105,6 +108,7 @@ async function main() {
             earlyBirdEnds: EARLY_ENDS,
             open: true,
             archived: false,
+            season: NEW_SEASON,
         }).returning();
         console.log(`  Created "${created[0].name}" (#${created[0].id})`);
     }

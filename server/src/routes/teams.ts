@@ -68,7 +68,7 @@ teamRoutes.get('/:id', async (req, res) => {
 
 // POST /api/teams (Admin protected - middleware later)
 teamRoutes.post('/', async (req, res) => {
-    const { name, priceCents, capacity, description, open, superEarlyBirdPriceCents, superEarlyBirdEnds, earlyBirdPriceCents, earlyBirdEnds, archived } = req.body;
+    const { name, priceCents, capacity, description, open, superEarlyBirdPriceCents, superEarlyBirdEnds, earlyBirdPriceCents, earlyBirdEnds, archived, season } = req.body;
     try {
         const newTeam = await db.insert(teams).values({
             name,
@@ -81,6 +81,7 @@ teamRoutes.post('/', async (req, res) => {
             earlyBirdPriceCents: earlyBirdPriceCents ?? null,
             earlyBirdEnds: earlyBirdEnds ? new Date(earlyBirdEnds) : null,
             archived: archived ?? false,
+            season: season ?? null,
         }).returning();
         res.json(newTeam[0]);
     } catch (error) {

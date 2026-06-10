@@ -18,6 +18,7 @@ export interface Team {
     nextPriceCents?: number | null; // Next (higher) price, or null at regular
     nextPriceStarts?: string | null; // When the next price kicks in
     archived?: boolean;
+    season?: string | null;
 }
 
 export async function fetchTeams(): Promise<Team[]> {

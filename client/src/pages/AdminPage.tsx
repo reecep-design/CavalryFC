@@ -20,6 +20,7 @@ export function AdminPage() {
     const [registrations, setRegistrations] = useState<any[]>([]);
     const [teams, setTeams] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
 
 
     // Edit state
@@ -161,6 +162,7 @@ export function AdminPage() {
                     earlyBirdPriceCents: editingTeam.earlyBirdPriceCents ?? null,
                     earlyBirdEnds: editingTeam.earlyBirdEnds || null,
                     archived: editingTeam.archived ?? false,
+                    season: editingTeam.season || null,
                 }),
             });
 
@@ -191,10 +193,23 @@ export function AdminPage() {
         return yearB - yearA;
     };
 
-    const boysTeams = teams.filter(t => t.name.toLowerCase().includes('boys')).sort(sortTeams);
-    const girlsTeams = teams.filter(t => t.name.toLowerCase().includes('girls')).sort(sortTeams);
+    // Season selection: default to the current (non-archived) season; allow viewing past ones.
+    const currentSeason = teams.find(t => !t.archived)?.season || null;
+    const allSeasons = Array.from(new Set(teams.map(t => t.season).filter(Boolean)));
+    // Show the current season first, then the rest.
+    const seasonOptions = [
+        ...(currentSeason ? [currentSeason] : []),
+        ...allSeasons.filter(s => s !== currentSeason),
+    ];
+    const activeSeason = selectedSeason ?? currentSeason ?? seasonOptions[0] ?? null;
+    const isViewingPast = activeSeason !== currentSeason;
 
-    const allWaitlisted = registrations.filter(r => r.isWaitlist);
+    const seasonTeams = teams.filter(t => (t.season ?? null) === activeSeason);
+    const seasonTeamIds = new Set(seasonTeams.map(t => t.id));
+    const boysTeams = seasonTeams.filter(t => t.name.toLowerCase().includes('boys')).sort(sortTeams);
+    const girlsTeams = seasonTeams.filter(t => t.name.toLowerCase().includes('girls')).sort(sortTeams);
+
+    const allWaitlisted = registrations.filter(r => r.isWaitlist && seasonTeamIds.has(r.teamId));
 
     // Card Renderer Helper
     const renderTeamCard = (team: any) => {
@@ -446,7 +461,29 @@ export function AdminPage() {
 
                 {/* Subheader */}
                 <div className="mb-6 flex justify-between items-center">
-                    <h2 className="text-xl font-semibold text-gray-800">Fall 2026 Season Teams</h2>
+                    <div className="flex items-center gap-3">
+                        <h2 className="text-xl font-semibold text-gray-800">
+                            {activeSeason ? `${activeSeason} Teams` : 'Teams'}
+                        </h2>
+                        {seasonOptions.length > 1 && (
+                            <select
+                                value={activeSeason ?? ''}
+                                onChange={e => setSelectedSeason(e.target.value)}
+                                className="border border-gray-300 rounded-md text-sm py-1.5 px-2 bg-white text-gray-700"
+                            >
+                                {seasonOptions.map(s => (
+                                    <option key={s} value={s}>
+                                        {s}{s === currentSeason ? ' (current)' : ''}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
+                        {isViewingPast && (
+                            <span className="text-xs font-semibold px-2.5 py-0.5 rounded border bg-amber-50 text-amber-700 border-amber-200">
+                                Past season (archived)
+                            </span>
+                        )}
+                    </div>
                     <div className="flex gap-3">
                         {/* Copy Emails Dropdown */}
                         <div className="relative">
@@ -801,6 +838,18 @@ export function AdminPage() {
                                 <label htmlFor="archived" className="ml-2 block text-sm font-medium text-gray-900">
                                     Archived <span className="text-gray-500 font-normal">(hidden from public homepage, kept for records)</span>
                                 </label>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Season</label>
+                                <input
+                                    type="text"
+                                    placeholder="e.g. Fall 2026"
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                                    value={editingTeam.season ?? ''}
+                                    onChange={e => setEditingTeam({ ...editingTeam, season: e.target.value })}
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Groups this team under a season in the picker above.</p>
                             </div>
 
                             <div className="flex justify-end space-x-3 mt-6 border-t pt-4">

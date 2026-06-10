@@ -20,6 +20,8 @@ export const teams = pgTable('teams', {
     earlyBirdEnds: timestamp('early_bird_ends'),
     // Archived teams are kept for historical data but hidden from the public homepage.
     archived: boolean('archived').notNull().default(false),
+    // Season label (e.g. "Fall 2026") used to group teams in the admin season picker.
+    season: text('season'),
     createdAt: timestamp('created_at').defaultNow(),
 });
 
