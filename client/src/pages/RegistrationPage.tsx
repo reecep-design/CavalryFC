@@ -131,6 +131,14 @@ export function RegistrationPage() {
 
   if (!team) return <div>Loading...</div>;
 
+  // Pull the "... born <date range> ..." line out of the team description
+  // so we can show the eligibility window in the header, like the homepage.
+  const eligibilityLine = team.description
+    ?.split('\n')
+    .find((line: string) => /born/i.test(line))
+    ?.replace(/^[•\s]+/, '')
+    .trim();
+
   return (
     <div className={`min-h-screen py-12 px-4 sm:px-6 lg:px-8 ${isWaitlist ? 'bg-amber-50' : 'bg-gray-50'}`}>
       <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
@@ -141,6 +149,11 @@ export function RegistrationPage() {
           <p className="text-blue-100 font-medium opacity-90">
             {team.name} • {isWaitlist ? 'Join Waitlist' : 'Fall 2026 Season'}
           </p>
+          {eligibilityLine && (
+            <p className="text-blue-100 text-sm opacity-80 mt-1">
+              {eligibilityLine}
+            </p>
+          )}
         </div>
 
         {isWaitlist && (
