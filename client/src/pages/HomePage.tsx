@@ -36,7 +36,12 @@ export function HomePage() {
   const boysTeams = teams.filter(t => t.name.toLowerCase().includes('boys'));
   const girlsTeams = teams.filter(t => t.name.toLowerCase().includes('girls'));
 
+  // Youngest age group on top. New teams use "U9/U10" labels (sort by U-number
+  // ascending); older teams use birth years (younger = higher year first).
   const sortTeams = (a: Team, b: Team) => {
+    const uA = a.name.match(/U(\d+)/i);
+    const uB = b.name.match(/U(\d+)/i);
+    if (uA && uB) return parseInt(uA[1]) - parseInt(uB[1]);
     const yearA = parseInt(a.name.match(/\d{4}/)?.[0] || '0');
     const yearB = parseInt(b.name.match(/\d{4}/)?.[0] || '0');
     return yearB - yearA;

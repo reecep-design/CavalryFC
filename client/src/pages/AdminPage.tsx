@@ -186,8 +186,13 @@ export function AdminPage() {
         setPassword('');
     };
 
-    // Sorting Logic
+    // Sorting Logic: youngest age group on top.
+    // New teams use "U9/U10" labels (sort by U-number ascending); older archived
+    // teams use birth years (sort by year descending — younger = higher year).
     const sortTeams = (a: any, b: any) => {
+        const uA = a.name.match(/U(\d+)/i);
+        const uB = b.name.match(/U(\d+)/i);
+        if (uA && uB) return parseInt(uA[1]) - parseInt(uB[1]);
         const yearA = parseInt(a.name.match(/\d{4}/)?.[0] || '0');
         const yearB = parseInt(b.name.match(/\d{4}/)?.[0] || '0');
         return yearB - yearA;
