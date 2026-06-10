@@ -37,7 +37,7 @@ const EARLY_ENDS = new Date('2026-08-01T00:00:00-04:00'); // $120 through end of
 // Age brackets for 2026-27 (Aug 1 – Jul 31 windows). Listed youngest-first so they
 // display in that order on the homepage.
 const BRACKETS = [
-    { ageLabel: 'U9/U10', format: '7v7', born: 'Aug 1, 2016 – Jul 31, 2018', ball: 4, capacity: 14 },
+    { ageLabel: 'U9/U10', format: '7v7', born: 'Aug 1, 2016 – Jul 31, 2018', ball: 4, capacity: 12 },
     { ageLabel: 'U11/U12', format: '9v9', born: 'Aug 1, 2014 – Jul 31, 2016', ball: 4, capacity: 16 },
     { ageLabel: 'U13/U14', format: '11v11', born: 'Aug 1, 2012 – Jul 31, 2014', ball: 5, capacity: 18 },
 ];
